@@ -1,5 +1,30 @@
+import {
+  Alert,
+  AppBar,
+  Badge,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Container,
+  Divider,
+  FormControl,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Pagination,
+  Select,
+  Stack,
+  Tab,
+  Tabs,
+  TextField,
+  Toolbar,
+  Typography,
+} from '@mui/material'
+import { ThemeProvider, createTheme } from '@mui/material/styles'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import './App.css'
 
 const priorityWeights = {
   Placement: 3,
@@ -13,50 +38,80 @@ const fallbackNotifications = [
     type: 'Placement',
     message: 'CSX Corporation hiring',
     timestamp: '2026-04-22 17:51:18',
-    unread: true,
-  },
-  {
-    id: '9158f9ad',
-    type: 'Event',
-    message: 'Farewell rehearsal moved to main auditorium',
-    timestamp: '2026-04-22 17:51:06',
-    unread: true,
   },
   {
     id: 'd146095a',
     type: 'Result',
     message: 'Mid-semester marks published',
     timestamp: '2026-04-22 17:51:30',
-    unread: true,
+  },
+  {
+    id: '9158f9ad',
+    type: 'Event',
+    message: 'Farewell rehearsal moved to main auditorium',
+    timestamp: '2026-04-22 17:51:06',
   },
   {
     id: '722ca80e',
     type: 'Placement',
     message: 'Aptitude round shortlist released',
     timestamp: '2026-04-22 17:50:32',
-    unread: true,
   },
   {
     id: '2c8b94fd',
     type: 'Result',
     message: 'Internal assessment revaluation window open',
     timestamp: '2026-04-22 17:49:58',
-    unread: false,
   },
   {
     id: '554d21ab',
     type: 'Event',
     message: 'Innovation club meetup starts at 5 PM',
     timestamp: '2026-04-22 17:48:44',
-    unread: true,
   },
 ]
 
-const typeMeta = {
-  Placement: { label: 'Career', icon: 'P' },
-  Result: { label: 'Academic', icon: 'R' },
-  Event: { label: 'Campus', icon: 'E' },
-}
+const theme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#1f6f59',
+    },
+    secondary: {
+      main: '#2f6f9f',
+    },
+    warning: {
+      main: '#a45c24',
+    },
+    background: {
+      default: '#eef4f1',
+      paper: '#ffffff',
+    },
+  },
+  shape: {
+    borderRadius: 8,
+  },
+  typography: {
+    fontFamily:
+      'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    h3: {
+      fontWeight: 800,
+      letterSpacing: 0,
+    },
+    h5: {
+      fontWeight: 800,
+      letterSpacing: 0,
+    },
+    h6: {
+      fontWeight: 800,
+      letterSpacing: 0,
+    },
+    button: {
+      fontWeight: 800,
+      textTransform: 'none',
+    },
+  },
+})
 
 function formatTime(value) {
   return new Intl.DateTimeFormat('en', {
@@ -65,213 +120,325 @@ function formatTime(value) {
     hour12: true,
     month: 'short',
     day: 'numeric',
-  }).format(new Date(value.replace(' ', 'T')))
+  }).format(new Date(value.replace?.(' ', 'T') || value))
+}
+
+function getNotificationId(notification) {
+  return notification.id || notification.ID
+}
+
+function getNotificationType(notification) {
+  return notification.type || notification.Type
+}
+
+function getNotificationMessage(notification) {
+  return notification.message || notification.Message
+}
+
+function getNotificationTimestamp(notification) {
+  return notification.timestamp || notification.Timestamp
+}
+
+function sortPriority(notifications) {
+  return [...notifications].sort((a, b) => {
+    const weightGap =
+      (priorityWeights[getNotificationType(b)] || 0) -
+      (priorityWeights[getNotificationType(a)] || 0)
+
+    if (weightGap !== 0) {
+      return weightGap
+    }
+
+    return (
+      new Date(getNotificationTimestamp(b)) - new Date(getNotificationTimestamp(a))
+    )
+  })
+}
+
+function NotificationCard({ notification, index, viewed, onMarkViewed }) {
+  const type = getNotificationType(notification)
+  const id = getNotificationId(notification)
+  const isNew = !viewed
+
+  return (
+    <Card variant="outlined">
+      <CardContent>
+        <Stack direction="row" spacing={2} alignItems="flex-start">
+          <Chip
+            label={`#${index + 1}`}
+            size="small"
+            color={isNew ? 'primary' : 'default'}
+          />
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1}
+              justifyContent="space-between"
+              alignItems={{ xs: 'flex-start', sm: 'center' }}
+            >
+              <Typography variant="h6" sx={{ overflowWrap: 'anywhere' }}>
+                {getNotificationMessage(notification)}
+              </Typography>
+              <Stack direction="row" spacing={1}>
+                <Chip
+                  label={type}
+                  color={
+                    type === 'Placement'
+                      ? 'primary'
+                      : type === 'Result'
+                        ? 'secondary'
+                        : 'warning'
+                  }
+                  size="small"
+                />
+                <Chip
+                  label={isNew ? 'New' : 'Viewed'}
+                  variant={isNew ? 'filled' : 'outlined'}
+                  color={isNew ? 'success' : 'default'}
+                  size="small"
+                />
+              </Stack>
+            </Stack>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+              {formatTime(getNotificationTimestamp(notification))} / ID {id}
+            </Typography>
+          </Box>
+          <Button
+            variant={isNew ? 'contained' : 'outlined'}
+            size="small"
+            onClick={() => onMarkViewed(id)}
+          >
+            Mark viewed
+          </Button>
+        </Stack>
+      </CardContent>
+    </Card>
+  )
 }
 
 function App() {
-  const [activeType, setActiveType] = useState('All')
+  const [pageMode, setPageMode] = useState('all')
+  const [notificationType, setNotificationType] = useState('All')
+  const [limit, setLimit] = useState(10)
+  const [page, setPage] = useState(1)
   const [notifications, setNotifications] = useState(fallbackNotifications)
+  const [viewedIds, setViewedIds] = useState(() => {
+    return new Set(JSON.parse(localStorage.getItem('viewed-notifications') || '[]'))
+  })
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(fallbackNotifications.length)
   const [isLoading, setIsLoading] = useState(false)
-  const [lastUpdated, setLastUpdated] = useState(null)
   const [error, setError] = useState('')
+  const [lastUpdated, setLastUpdated] = useState('')
+
+  const filteredFallback = useMemo(() => {
+    const typed =
+      notificationType === 'All'
+        ? fallbackNotifications
+        : fallbackNotifications.filter((item) => item.type === notificationType)
+    const ordered = pageMode === 'priority' ? sortPriority(typed) : typed
+    const start = (page - 1) * limit
+
+    return ordered.slice(start, start + limit)
+  }, [limit, notificationType, page, pageMode])
 
   const fetchNotifications = useCallback(async () => {
     setIsLoading(true)
     setError('')
 
+    const query = new URLSearchParams({
+      limit: String(limit),
+      page: String(page),
+      mode: pageMode === 'priority' ? 'priority' : 'all',
+    })
+
+    if (notificationType !== 'All') {
+      query.set('notification_type', notificationType)
+    }
+
     try {
-      const response = await fetch('/api/notifications')
+      const response = await fetch(`/api/notifications?${query.toString()}`)
       const payload = await response.json()
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Unable to fetch notifications')
+        throw new Error(payload.details?.message || payload.error)
       }
 
       setNotifications(payload.notifications)
+      setTotal(payload.total)
+      setTotalPages(payload.totalPages)
       setLastUpdated(payload.updatedAt)
     } catch (fetchError) {
+      setNotifications(filteredFallback)
+      setTotal(filteredFallback.length)
+      setTotalPages(1)
       setError(fetchError.message)
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [filteredFallback, limit, notificationType, page, pageMode])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(fetchNotifications, 0)
-    const intervalId = window.setInterval(fetchNotifications, 5000)
 
-    return () => {
-      window.clearTimeout(timeoutId)
-      window.clearInterval(intervalId)
-    }
+    return () => window.clearTimeout(timeoutId)
   }, [fetchNotifications])
 
-  const rankedNotifications = useMemo(() => {
-    return notifications
-      .filter((item) => activeType === 'All' || item.type === activeType)
-      .sort((a, b) => {
-        const weightGap = priorityWeights[b.type] - priorityWeights[a.type]
+  function handleMarkViewed(id) {
+    const nextViewed = new Set(viewedIds)
+    nextViewed.add(id)
+    setViewedIds(nextViewed)
+    localStorage.setItem('viewed-notifications', JSON.stringify([...nextViewed]))
+  }
 
-        if (weightGap !== 0) {
-          return weightGap
-        }
+  function handleModeChange(_event, nextMode) {
+    setPageMode(nextMode)
+    setPage(1)
+  }
 
-        return new Date(b.timestamp) - new Date(a.timestamp)
-      })
-  }, [activeType, notifications])
-
-  const unreadCount = notifications.filter((item) => item.unread).length
-  const statusText = error
-    ? 'API unavailable'
-    : isLoading
-      ? 'Refreshing feed'
-      : 'Live priority feed'
+  const newCount = notifications.filter((notification) => {
+    return !viewedIds.has(getNotificationId(notification))
+  }).length
 
   return (
-    <main className="app-shell">
-      <section className="hero-section">
-        <nav className="topbar" aria-label="Application summary">
-          <div className="brand">
-            <span className="brand-mark">CN</span>
-            <span>Campus Notify</span>
-          </div>
-          <div className="sync-status">
-            <span className="pulse" aria-hidden="true"></span>
-            {statusText}
-          </div>
-        </nav>
+    <ThemeProvider theme={theme}>
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+        <AppBar position="sticky" color="inherit" elevation={0}>
+          <Toolbar sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              Campus Notify
+            </Typography>
+            <Badge badgeContent={newCount} color="success">
+              <Chip label="Live via middleware" color="primary" variant="outlined" />
+            </Badge>
+          </Toolbar>
+        </AppBar>
 
-        <div className="hero-grid">
-          <div className="hero-copy">
-            <p className="eyebrow">Stage 1 Priority Inbox</p>
-            <h1>Important campus alerts, ranked before they get buried.</h1>
-            <p className="lede">
-              Placement notices, results, and events are ordered by priority
-              and recency so students see the right update first.
-            </p>
-            <div className="hero-actions" aria-label="Inbox actions">
-              <button
-                type="button"
-                className="primary-action"
-                onClick={fetchNotifications}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Refreshing...' : 'Refresh feed'}
-              </button>
-              <button type="button" className="ghost-action">
-                Export top 10
-              </button>
-            </div>
-          </div>
+        <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
+              <Stack spacing={3}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="overline" color="primary">
+                      Stage 2
+                    </Typography>
+                    <Typography variant="h3" sx={{ mt: 1 }}>
+                      Notification Center
+                    </Typography>
+                    <Typography color="text.secondary" sx={{ mt: 2 }}>
+                      Review every campus notification, switch to priority view,
+                      filter by type, and track what has already been viewed.
+                    </Typography>
+                  </CardContent>
+                </Card>
 
-          <div className="signal-panel" aria-label="Priority statistics">
-            <div>
-              <span className="stat-value">{unreadCount}</span>
-              <span className="stat-label">Unread</span>
-            </div>
-            <div>
-              <span className="stat-value">10</span>
-              <span className="stat-label">Top limit</span>
-            </div>
-            <div>
-              <span className="stat-value">3x</span>
-              <span className="stat-label">Placement weight</span>
-            </div>
-          </div>
-        </div>
-      </section>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="h6">Controls</Typography>
+                    <Stack spacing={2} sx={{ mt: 2 }}>
+                      <FormControl fullWidth>
+                        <InputLabel>Notification type</InputLabel>
+                        <Select
+                          value={notificationType}
+                          label="Notification type"
+                          onChange={(event) => {
+                            setNotificationType(event.target.value)
+                            setPage(1)
+                          }}
+                        >
+                          {['All', 'Placement', 'Result', 'Event'].map((type) => (
+                            <MenuItem value={type} key={type}>
+                              {type}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                      <TextField
+                        label="Limit per page"
+                        type="number"
+                        value={limit}
+                        inputProps={{ min: 1, max: 50 }}
+                        onChange={(event) => {
+                          setLimit(Number(event.target.value))
+                          setPage(1)
+                        }}
+                      />
+                      <Button
+                        variant="contained"
+                        onClick={fetchNotifications}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? 'Refreshing...' : 'Refresh notifications'}
+                      </Button>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Stack>
+            </Grid>
 
-      <section className="dashboard">
-        <aside className="control-panel" aria-label="Priority controls">
-          <div>
-            <p className="section-kicker">Filters</p>
-            <h2>Notification types</h2>
-          </div>
+            <Grid item xs={12} md={8}>
+              <Card>
+                <CardContent>
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    justifyContent="space-between"
+                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                  >
+                    <Box>
+                      <Typography variant="h5">
+                        {pageMode === 'priority'
+                          ? 'Priority Notifications'
+                          : 'All Notifications'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {total} total / {lastUpdated ? `Updated ${formatTime(lastUpdated)}` : 'Waiting for API'}
+                      </Typography>
+                    </Box>
+                    {isLoading && <CircularProgress size={28} />}
+                  </Stack>
 
-          <div className="filter-list">
-            {['All', 'Placement', 'Result', 'Event'].map((type) => (
-              <button
-                type="button"
-                className={activeType === type ? 'filter active' : 'filter'}
-                onClick={() => setActiveType(type)}
-                key={type}
-              >
-                <span>{type === 'All' ? 'A' : typeMeta[type].icon}</span>
-                {type}
-              </button>
-            ))}
-          </div>
+                  <Tabs value={pageMode} onChange={handleModeChange} sx={{ mt: 2 }}>
+                    <Tab value="all" label="All notifications" />
+                    <Tab value="priority" label="Priority notifications" />
+                  </Tabs>
 
-          <div className="priority-rule">
-            <p className="section-kicker">Ranking rule</p>
-            <ol>
-              <li>Placement alerts first</li>
-              <li>Results before events</li>
-              <li>Newest notification wins ties</li>
-            </ol>
-          </div>
-        </aside>
+                  {error && (
+                    <Alert severity="warning" sx={{ my: 2 }}>
+                      API fallback active: {error}
+                    </Alert>
+                  )}
 
-        <section className="inbox-panel" aria-label="Ranked notifications">
-          <div className="panel-heading">
-            <div>
-              <p className="section-kicker">Priority Inbox</p>
-              <h2>Top notifications</h2>
-            </div>
-            <span>
-              {lastUpdated
-                ? `Updated ${formatTime(lastUpdated)}`
-                : `${rankedNotifications.length} visible`}
-            </span>
-          </div>
+                  <Divider sx={{ my: 2 }} />
 
-          {error && (
-            <div className="notice" role="status">
-              Showing sample notifications because the middleware could not
-              reach the protected API: {error}
-            </div>
-          )}
+                  <Stack spacing={1.5}>
+                    {notifications.map((notification, index) => (
+                      <NotificationCard
+                        notification={notification}
+                        index={(page - 1) * limit + index}
+                        viewed={viewedIds.has(getNotificationId(notification))}
+                        onMarkViewed={handleMarkViewed}
+                        key={getNotificationId(notification)}
+                      />
+                    ))}
+                  </Stack>
 
-          <div className="notification-list">
-            {rankedNotifications.map((item, index) => (
-              <article className="notification-card" key={item.id}>
-                <div className="rank">#{index + 1}</div>
-                <div className={`type-badge ${item.type.toLowerCase()}`}>
-                  {typeMeta[item.type].icon}
-                </div>
-                <div className="notification-content">
-                  <div className="notification-title">
-                    <h3>{item.message}</h3>
-                    {item.unread && <span>Unread</span>}
-                  </div>
-                  <p>
-                    {typeMeta[item.type].label} update / {formatTime(item.timestamp)}
-                  </p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <aside className="approach-panel" aria-label="Implementation approach">
-          <p className="section-kicker">Approach</p>
-          <h2>Efficient top 10</h2>
-          <p>
-            Keep a fixed-size priority queue keyed by type weight and timestamp.
-            Each new notification is compared once, preserving the strongest ten
-            without sorting the entire feed repeatedly.
-          </p>
-          <div className="metric-row">
-            <span>Update cost</span>
-            <strong>O(log 10)</strong>
-          </div>
-          <div className="metric-row">
-            <span>Memory</span>
-            <strong>O(10)</strong>
-          </div>
-        </aside>
-      </section>
-    </main>
+                  <Stack alignItems="center" sx={{ pt: 3 }}>
+                    <Pagination
+                      count={totalPages}
+                      page={page}
+                      color="primary"
+                      onChange={(_event, nextPage) => setPage(nextPage)}
+                    />
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+    </ThemeProvider>
   )
 }
 

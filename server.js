@@ -33,7 +33,7 @@ function normalizeNotification(notification) {
   }
 }
 
-function rankNotifications(notifications, limit = 10) {
+function sortByPriority(notifications) {
   return notifications
     .map(normalizeNotification)
     .filter((notification) => {
@@ -49,7 +49,30 @@ function rankNotifications(notifications, limit = 10) {
 
       return new Date(b.timestamp) - new Date(a.timestamp)
     })
-    .slice(0, limit)
+}
+
+function filterByType(notifications, notificationType) {
+  if (!notificationType || notificationType === 'All') {
+    return notifications
+  }
+
+  return notifications.filter((notification) => {
+    return notification.type?.toLowerCase() === notificationType.toLowerCase()
+  })
+}
+
+function paginate(notifications, page, limit) {
+  const safePage = Math.max(Number(page) || 1, 1)
+  const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 50)
+  const start = (safePage - 1) * safeLimit
+
+  return {
+    page: safePage,
+    limit: safeLimit,
+    total: notifications.length,
+    totalPages: Math.max(Math.ceil(notifications.length / safeLimit), 1),
+    notifications: notifications.slice(start, start + safeLimit),
+  }
 }
 
 async function loggingMiddleware(req, res, next) {
@@ -74,7 +97,9 @@ async function corsMiddleware(req, res, next) {
 }
 
 async function notificationsRoute(req, res, next) {
-  if (req.method !== 'GET' || req.url !== '/api/notifications') {
+  const requestUrl = new URL(req.url, `http://${req.headers.host}`)
+
+  if (req.method !== 'GET' || requestUrl.pathname !== '/api/notifications') {
     await next()
     return
   }
@@ -96,10 +121,22 @@ async function notificationsRoute(req, res, next) {
     return
   }
 
+  const notificationType = requestUrl.searchParams.get('notification_type')
+  const limit = requestUrl.searchParams.get('limit')
+  const page = requestUrl.searchParams.get('page')
+  const mode = requestUrl.searchParams.get('mode')
+  const normalized = (payload.notifications || []).map(normalizeNotification)
+  const typedNotifications = filterByType(normalized, notificationType)
+  const orderedNotifications =
+    mode === 'priority'
+      ? sortByPriority(typedNotifications)
+      : typedNotifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+  const pageResult = paginate(orderedNotifications, page, limit)
+
   sendJson(res, 200, {
     source: NOTIFICATION_API,
     updatedAt: new Date().toISOString(),
-    notifications: rankNotifications(payload.notifications || []),
+    ...pageResult,
   })
 }
 
